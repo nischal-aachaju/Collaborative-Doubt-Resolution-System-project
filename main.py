@@ -12,6 +12,245 @@ root.geometry("800x600")
 root.resizable(0,0)
 root.iconbitmap('assects/logo.ico')
 
+def login_page():
+    login_root = Toplevel(root)
+    login_root.geometry("800x650")
+    login_root.resizable(0, 0)
+    login_root.title("Login")
+    root.withdraw()
+    # ---------------- DATABASE ----------------
+    conn = sqlite3.connect("userAuthUI.db")
+    cur = conn.cursor()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        email TEXT PRIMARY KEY,
+        name TEXT,
+        password TEXT,
+        role TEXT,
+        security_password TEXT
+    )
+    """)
+    # to delete all table data
+    # cur.execute("DELETE FROM users")
+
+
+    conn.commit()
+    
+    # ---------------- HASH FUNCTION ----------------
+    def hash_password(password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
+    # ---------------- PAGE SWITCHING ----------------
+    def show_frame(frame):
+        login_frame.pack_forget()
+        register_frame.pack_forget()
+        forgot_frame.pack_forget()
+        frame.pack(pady=60)
+
+    # ---------------- LOGIN FUNCTION ----------------
+    def login():
+
+        if not login_email.get() or not login_password.get():
+            
+            messagebox.showwarning("Error", "All fields are required")
+            return
+
+        cur.execute("SELECT * FROM users WHERE email=?", (login_email.get(),))
+        record = cur.fetchone()
+
+
+        if record and hash_password(login_password.get()) == record[2]:
+            login_password.delete(0, END)
+            login_email.delete(0, END)
+            
+            login_root.destroy()
+            conn.close()
+            if record[3] == "Student":
+                student_page(record[1])
+            elif record[3] == "Teacher":
+                teacher_page(record[1])
+            
+        
+        else:
+            messagebox.showerror("Error", "Invalid credentials")
+            login_password.delete(0, END)
+
+
+    # ---------------- REGISTER FUNCTION ----------------
+    def register():
+        if reg_password.get() != reg_con_password.get():
+            messagebox.showwarning("Error", "Passwords do not match")
+            return
+        if not reg_email.get() or not reg_password.get() or not role_var.get() or not security_password.get():
+            messagebox.showwarning("Error", "All fields are required")
+            return 
+
+        try:
+            cur.execute("INSERT INTO users VALUES(?,?,?,?,?)",
+                        (reg_email.get(),reg_name.get(), hash_password(reg_password.get()),  role_var.get(),security_password.get()))
+            conn.commit()
+            messagebox.showinfo("Success", "Registered Successfully")
+            show_frame(login_frame)
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Error", "Email already exists")
+
+    # ---------------- FORGOT PASSWORD FUNCTION ----------------
+    def reset_password():
+        if not forgot_email.get() or not new_password.get():
+            messagebox.showwarning("Error", "All fields required")
+            return
+
+        cur.execute("SELECT * FROM users WHERE email=?", (forgot_email.get(),))
+        record = cur.fetchone()
+
+        if not forgot_security_password.get():
+            messagebox.showwarning("Error", "Security Password required")
+            return
+        if forgot_security_password.get() != record[4]:
+            messagebox.showerror("Error", "Security Password not matched")
+            return
+        if record:
+            cur.execute("UPDATE users SET password=? WHERE email=?",
+                        (hash_password(new_password.get()), forgot_email.get()))
+            conn.commit()
+            messagebox.showinfo("Success", "Password Updated Successfully")
+            new_password.delete(0, END)
+            forgot_email.delete(0, END)
+            show_frame(login_frame)
+        else:
+            messagebox.showerror("Error", "Email not found")
+            new_password.delete(0, END)
+            forgot_email.delete(0, END)
+    # ---------------- UI DESIGN --------------
+
+    # ---------------- LOGIN FRAME ----------------
+    login_frame = Frame(login_root, bg="white", width=500, height=480)
+    login_frame.pack_propagate(False)
+    login_frame.pack(pady=60)
+
+    #-------------------login text----------------------
+    Label(login_frame, text="Login", font=("Arial", 24, "bold"), bg="white").pack(pady=(20,5))
+    Label(login_frame, text="to solve doubt", fg="gray", bg="white").pack(pady=(0,20))
+
+    # user email
+    Label(login_frame, text="Email", bg="white",font=("Arial", 16)).place(x=50,y=120)
+    login_email = Entry(login_frame, width=30,bd=2, relief="groove",font=("Arial", 16))
+    login_email.place(x=50,y=155)
+
+    # user password
+    Label(login_frame, text="Password", bg="white",font=("Arial", 16)).place(x=50,y=210)
+    login_password = Entry(login_frame, width=30, show="*", bd=2, relief="groove",font=("Arial", 16))
+    login_password.place(x=50,y=245)
+
+    # login button
+    Button(login_frame, text="Login", width=27, bg="#00bcd4", fg="white",   
+        font=("Arial",16,"bold"), command=login).place(x=50,y=300)
+    #-------------------Forgot Password Frame-------------------
+    # Forgot Password clickable label
+    forgot_lbl = Label(login_frame, text="Forgot Password?",
+                    fg="blue", bg="white", cursor="hand2",font=("Arial", 10))
+    forgot_lbl.place(x=175,y=350)
+    forgot_lbl.bind("<Button-1>", lambda e: show_frame(forgot_frame))
+
+    # Register clickable label
+    register_lbl = Label(login_frame,
+                        text="Don't have an account? Register",
+                        fg="#EB310C", bg="white", cursor="hand2",font=("",12))
+    register_lbl.place(x=50,y=390)
+    register_lbl.bind("<Button-1>", lambda e: show_frame(register_frame))
+
+
+# ---------------- REGISTER FRAME ----------------
+    register_frame = Frame(login_root, bg="white", width=500, height=480)
+
+    Label(register_frame, text="Register", font=("Arial", 24, "bold"), bg="white").place(x=180,y=18)     
+    Label(register_frame, text="to solve doubt", fg="gray", bg="white").place(x=200,y=60)
+
+
+    Label(register_frame, text="User Name", bg="white",font=("Arial", 16)).place(x=50,y=90)
+    reg_name = Entry(register_frame, width=30, bd=2, relief="groove",font=("Arial", 16))
+    reg_name.place(x=50,y=120)
+
+    Label(register_frame, text="Email", bg="white",font=("Arial", 16)).place(x=50,y=155)
+    reg_email = Entry(register_frame, width=30, bd=2, relief="groove",font=("Arial", 16))
+    reg_email.place(x=50,y=185)
+
+    Label(register_frame, text="Password", bg="white",font=("Arial", 16)).place(x=50,y=215)
+    reg_password = Entry(register_frame, width=30, show="*", bd=2, relief="groove",font=("Arial", 16))
+    reg_password.place(x=50,y=245)  
+
+    Label(register_frame, text="Confirm Password", bg="white",font=("Arial", 16)).place(x=50,y=275)
+    reg_con_password = Entry(register_frame, width=30, show="*", bd=2, relief="groove",font=("Arial", 16))
+    reg_con_password.place(x=50,y=305) 
+
+    Label(register_frame, text="Security Password:", bg="white",font=("Arial", 10)).place(x=130,y=355)
+    Label(register_frame, text="favouraite pet name?", bg="white",font=("Arial", 10)).place(x=255,y=335)
+    security_password = Entry(register_frame, width=20,bd=2, relief="groove",font=("Arial", 10))
+    security_password.place(x=250,y=355)
+
+    role_var = StringVar()
+
+    Radiobutton(register_frame, text="Student", variable=role_var,
+                value="Student", bg="white").place(x=50,y=335)
+    Radiobutton(register_frame, text="Teacher", variable=role_var,
+                value="Teacher", bg="white").place(x=50,y=355)
+    role_var.set("Student")
+    Button(register_frame, text="Register", width=27, bg="#00bcd4",
+        fg="white", font=("Arial",16,"bold"),
+        command=register).place(x=50,y=380)
+
+    # Back to login clickable
+    back_login_lbl = Label(register_frame,
+                        text="Already have account? Login",
+                        fg="#0000FF", bg="white", cursor="hand2",font=("arial",13))
+    back_login_lbl.place(x=50,y=430)
+    back_login_lbl.bind("<Button-1>", lambda e: show_frame(login_frame))
+
+
+    # ---------------- FORGOT FRAME ----------------
+    forgot_frame = Frame(login_root, bg="white", width=500, height=480)
+
+    Label(forgot_frame, text="Forgot Password",
+        font=("Arial", 22, "bold"), bg="white").place(x=135,y=40)
+    Label(forgot_frame, text="Reset your password",
+        fg="gray", bg="white").place(x=190,y=80)
+
+    Label(forgot_frame, text="Email", bg="white",font=("Arial", 16)).place(x=50,y=135)
+    forgot_email = Entry(forgot_frame, width=30, bd=2, relief="groove",font=("Arial", 16))
+    forgot_email.place(x=50,y=170)
+    
+
+    Label(forgot_frame, text="New Password", bg="white",font=("Arial", 16)).place(x=50,y=220)
+    new_password = Entry(forgot_frame, width=30, show="*", bd=2, relief="groove",font=("Arial", 16))
+    new_password.place(x=50,y=250)
+
+    Label(forgot_frame, text="Security Password:", bg="white",font=("Arial", 16)).place(x=50,y=305)
+    forgot_security_password = Entry(forgot_frame, width=30,show="*",bd=2, relief="groove",font=("Arial", 16))
+    forgot_security_password.place(x=50,y=335)
+
+
+    Button(forgot_frame, text="Submit", width=27, bg="#00bcd4",
+        fg="white", font=("Arial",16,"bold"),
+        command=reset_password).place(x=50,y=380)
+
+
+    # Back to login clickable 
+    forgot_back_lbl = Label(forgot_frame,
+                            text="Back to Login",
+                            fg="blue", bg="white", cursor="hand2",font=("Arial", 10))
+    forgot_back_lbl.place(x=195,y=430)
+    forgot_back_lbl.bind("<Button-1>", lambda e: show_frame(login_frame))
+
+    # Show login first
+    show_frame(login_frame)
+    
+    def new_window():
+        login_root.destroy()
+        root.deiconify() 
+    login_root.protocol("WM_DELETE_WINDOW", new_window)
+
+
+
 image_bg = Image.open("assects/dashboard.jpg")
 resize_bg =image_bg.resize((800, 600))
 final_bg = ImageTk.PhotoImage(resize_bg)
@@ -24,6 +263,6 @@ button = Label(root,
                     text="Login",
                     fg="white",bg="#72dae4", cursor="hand2",font=("Arial",16,"bold"))
 button.place(x=370,y=390)
-# button.bind("<Button-1>", lambda e: login_page())
+button.bind("<Button-1>", lambda e: login_page())
 
 root.mainloop()
