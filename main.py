@@ -1,8 +1,8 @@
 from tkinter import *
 import sqlite3
 from PIL import Image, ImageTk
-# from tkinter import messagebox
-# import hashlib
+from tkinter import messagebox
+import hashlib
 #----------database-----------------
 conn=sqlite3.connect("cdrs.db")
 cur=conn.cursor()
@@ -65,10 +65,10 @@ def login_page():
             
             login_root.destroy()
             conn.close()
-            if record[3] == "Student":
-                student_page(record[1])
-            elif record[3] == "Teacher":
-                teacher_page(record[1])
+            # if record[3] == "Student":
+            #     student_page(record[1])
+            # elif record[3] == "Teacher":
+            #     teacher_page(record[1])
             
         
         else:
