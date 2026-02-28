@@ -1,2 +1,0 @@
-print("hrlo")
-print("anurag")
