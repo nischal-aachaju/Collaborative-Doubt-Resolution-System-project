@@ -304,41 +304,85 @@ def student_content(parent_frame, current_user, parent_root, doubt, on_back=None
     Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "join", on_back))
 
 
-def teacher_content(root,name):
-    frame=Frame(root,bg="#E1E9E5",width=750,height=150,bd=2,relief="groove")
+def teacher_content(parent_frame, current_user, parent_root, doubt, on_back=None):
+    doubt_id, posted_by, title, description, status, posted_at = doubt
+
+    frame = Frame(parent_frame, bg="#E1E9E5", width=750, height=150, bd=2, relief="groove")
     frame.pack_propagate(False)
     frame.pack(pady=10)
-    #-------------------avtar image----------------------
-
     name_logo(frame)
-    Label(frame,text="Nischal",font=("Arial",12,"bold"),bg="#E1E9E5").place(x=50,y=10)
-    Label(frame,text="Topic: "+"Use of pack_propogate()",font=("Arial",10,"bold"),bg="#E1E9E5").place(x=25,y=40)
-    Label(frame,text="loram hello world If you don't use this line, the frame will shrink\n or expand to perfectlyfit whatever buttons or labels you"+" ......",
-            font=("Arial",10),
-            bg="#E1E9E5",
-            justify="left"
-            ).place(x=25,y=60)
-    Volunteer = Label(frame,
-                    text="Volunteer _name",
-                    bd=2,relief="groove",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2)
-    Volunteer.place(x=30,y=110)
-    Volunteer.bind("<Button-1>", lambda e: login_page())
+
+    Label(frame, text=posted_by, font=("Arial", 12, "bold"), bg="#E1E9E5").place(x=50, y=10)
+    Label(frame, text="Topic: " + title, font=("Arial", 10, "bold"), bg="#E1E9E5").place(x=25, y=40)
+    short_desc = description[:80] + " ......" if len(description) > 80 else description
+    Label(frame, text=short_desc, font=("Arial", 10), bg="#E1E9E5", justify="left").place(x=25, y=60)
+
+    volunteers  = get_volunteers(doubt_id)
+    vol_label = volunteers[0][0] if volunteers else "No Volunteer Yet"
+    Volunteer = Label(frame, text=vol_label, bd=2, relief="groove",
+                      fg="white", bg="#23cff2", cursor="hand2", font=("Arial", 12, "bold"), padx=5, pady=2)
+    Volunteer.place(x=30, y=110)
+    Volunteer.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "teacher", on_back))
+
+    frame2 = Frame(frame, bg="#E1E9E5", width=200, height=145)
+    frame2.place(x=545, y=0)
+    Label(frame2, text="👨🏽‍🎓 Enrolled Students", font=("Arial", 12), bg="#E1E9E5").place(x=10, y=10)
+
+    participants = get_participants(doubt_id)
+    volunteers  = get_volunteers(doubt_id)
+    all_enrolled = [(pname, "student") for pname, _ in participants] + \
+                   [(vname, "volunteer") for vname, _ in volunteers]
+    if all_enrolled:
+        for i, (pname, role) in enumerate(all_enrolled[:4]):
+            display = f"• {pname} (volunteer)" if role == "volunteer" else f"• {pname}"
+            Label(frame2, text=display, font=("Arial", 10), bg="#E1E9E5").place(x=10, y=30 + i * 20)
+    else:
+        Label(frame2, text="No students yet", font=("Arial", 10), fg="gray", bg="#E1E9E5").place(x=10, y=30)
+
+    Enroll = Label(frame2, text="Join as tutor", fg="white", bg="#23cff2", cursor="hand2",
+                   font=("Arial", 12, "bold"), padx=5, pady=2, bd=2, relief="groove")
+    Enroll.place(x=10, y=115)
+    Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "teacher", on_back))
 
 
-    frame2=Frame(frame,bg="#E1E9E5",width=200,height=145)
-    frame2.place(x=545,y=0) 
-    Label(frame2,text="👨🏽‍🎓"+"Enrolled Students",font=("Arial",12,),bg="#E1E9E5").place(x=10,y=10)
-    Label(frame2,text="• "+"Name1",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=30)
-    Label(frame2,text="• "+"Name2",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=50)
-    Label(frame2,text="• "+"Name3",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=70)
-    Label(frame2,text="• "+"Name4",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=90)
+def post_page(name, on_back=None):
+    post_root = Toplevel(root)
+    post_root.title("Post")
+    post_root.geometry("800x600")
+    post_root.resizable(0, 0)
+    post_root.configure(bg="#f2f2f2")
+    root.withdraw()
+    Navbar(post_root, name)
 
-    Enroll = Label(frame2,
-                    text="Join as tutor",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2,bd=2,relief="groove")
-    Enroll.place(x=30,y=115)
-    Enroll.bind("<Button-1>", lambda e: joining_page(root,name))
+    def submit_post():
+        title = title_entry.get().strip()
+        description = description_entry.get("1.0", END).strip()
+        if not title or not description:
+            messagebox.showwarning("Error", "Title and Description are required", parent=post_root)
+            return
+        post_doubt(name, title, description)
+        messagebox.showinfo("Success", "Doubt posted successfully!", parent=post_root)
+        title_entry.delete(0, END)
+        description_entry.delete("1.0", END)
+
+    Label(post_root, text="Title", font=("Arial", 16), bg="#f2f2f2").place(x=50, y=100)
+    title_entry = Entry(post_root, font=("Arial", 14), width=30, bd=1, relief="solid")
+    title_entry.place(x=50, y=135)
+    Label(post_root, text="Description", font=("Arial", 16), bg="#f2f2f2").place(x=50, y=190)
+    description_entry = Text(post_root, font=("Arial", 12), width=60, height=10, bd=1, relief="solid")
+    description_entry.place(x=50, y=225)
+    post_btn = Label(post_root, text="Post now  +", font=("Arial", 16, "bold"),
+                     bg="#23cff2", fg="white", padx=20, pady=10, cursor="hand2", bd=1, relief="solid")
+    post_btn.place(x=50, y=450)
+    post_btn.bind("<Button-1>", lambda e: submit_post())
+
+    def on_close():
+        post_root.destroy()
+        root.deiconify()
+        if on_back:
+            on_back()          
+    post_root.protocol("WM_DELETE_WINDOW", on_close)
+
 def student_page(name):
     student_root = Toplevel(root)
     student_root.geometry("800x650")
