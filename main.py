@@ -481,6 +481,37 @@ def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
         if on_back:
             on_back()          
     join_root.protocol("WM_DELETE_WINDOW", on_close)
+def Navbar(page_root, username):
+    nav_frame = Frame(page_root, bg="#23cff2", height=80)
+    nav_frame.pack(fill=X)
+    image_logo = Image.open("assects/logo.png").resize((80, 80))
+    image_logoTk = ImageTk.PhotoImage(image_logo)
+    lbl_logo = Label(nav_frame, image=image_logoTk, bd=0)
+    lbl_logo.image = image_logoTk
+    lbl_logo.place(x=10, y=0)
+    image_text = Image.open("assects/logo_text.png").resize((150, 50))
+    image_textTk = ImageTk.PhotoImage(image_text)
+    text_logo = Label(nav_frame, image=image_textTk, bd=0)
+    text_logo.image = image_textTk
+    text_logo.place(x=100, y=15)
+    image_profile = Image.open("assects/main_profile.png").resize((40, 40))
+    image_profileTk = ImageTk.PhotoImage(image_profile)
+    profile_logo = Label(nav_frame, image=image_profileTk, bd=0)
+    profile_logo.image = image_profileTk
+    profile_logo.bind("<Button-1>", lambda e: profile_page(username))
+    profile_logo.place(x=700, y=10)
+    text_profile = Label(nav_frame, text=username + ";", font=("Arial", 14), bg="#23cff2", fg="black", bd=0)
+    text_profile.place(x=640, y=54)
+    image_logout = Image.open("assects/logout.png").resize((30, 30))
+    image_logoutTk = ImageTk.PhotoImage(image_logout)
+    logout_logo = Label(nav_frame, image=image_logoutTk, bd=0)
+    logout_logo.image = image_logoutTk
+    logout_logo.place(x=750, y=22)
+    def do_logout():
+        page_root.destroy()
+        root.deiconify()
+        login_page()
+    logout_logo.bind("<Button-1>", lambda e: do_logout())
 
 image_bg = Image.open("assects/dashboard.jpg")
 resize_bg =image_bg.resize((800, 600))
