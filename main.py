@@ -383,7 +383,104 @@ def teacher_page(name):
         root.deiconify() 
 
     teacher_root.protocol("WM_DELETE_WINDOW", new_window)
+def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
+    join_root = Toplevel(root)
+    join_root.geometry("800x650")
+    join_root.resizable(0, 0)
+    join_root.title("Join Session")
+    join_root.configure(bg="white")
+    prev_root.withdraw()
 
+    Navbar(join_root, name)
+
+    main_frame = Frame(join_root, bg="white", width=760, height=540)
+    main_frame.place(x=20, y=100)
+
+    app_cur.execute("SELECT * FROM doubts WHERE id = ?", (doubt_id,))
+    doubt = app_cur.fetchone()
+
+    name_logo(main_frame)
+    Label(main_frame, text=doubt[1], font=("Arial", 14, "bold"), bg="white").place(x=60, y=8)
+
+    title_entry = Entry(main_frame, font=("Arial", 12), width=45, bd=1, relief="solid", bg="#f2f2f2")
+    title_entry.insert(0, doubt[2])
+    title_entry.place(x=30, y=80, height=40)
+
+    desc_text = Text(main_frame, font=("Arial", 11), width=45, height=8, bd=1, relief="solid", bg="white")
+    desc_text.insert("1.0", doubt[3])
+    desc_text.place(x=30, y=140)
+
+    available_rooms = get_available_rooms()
+    clicked_block = StringVar(value=available_rooms[0] if available_rooms else "No rooms available")
+    Label(main_frame, text="Select Location:", font=("Arial", 10), bg="white").place(x=30, y=295)
+    block_menu = OptionMenu(main_frame, clicked_block, *available_rooms)
+    block_menu.config(bg="#f2f2f2", fg="black", font=("Arial", 11), indicatoron=True, bd=1, relief="solid")
+    block_menu["menu"].config(bg="#f2f2f2", font=("Arial", 11))
+    block_menu.place(x=30, y=320, height=40)
+
+    time_entry = Entry(main_frame, font=("Arial", 12), width=25, bd=1, relief="solid", bg="#f2f2f2")
+    time_entry.insert(0, "2026/01/25 ( 12:00 PM)")
+    time_entry.place(x=30, y=380, height=40)
+
+    enrolled_frame = Frame(main_frame, bg="#f2f2f2", width=220, height=350, bd=1, relief="solid")
+    enrolled_frame.place(x=510, y=30)
+
+    def refresh_enrolled():
+        for w in enrolled_frame.winfo_children():
+            w.destroy()
+        Label(enrolled_frame, text="Enrolled", font=("Arial", 14), bg="#f2f2f2").pack(pady=10)
+        all_enrolled = [(p, "student") for p, _ in get_participants(doubt_id)] + \
+                       [(v, "volunteer") for v, _ in get_volunteers(doubt_id)]
+        if all_enrolled:
+            for pname, role in all_enrolled:
+                display = f"•  {pname} (volunteer)" if role == "volunteer" else f"•  {pname}"
+                Label(enrolled_frame, text=display, font=("Arial", 11), bg="#f2f2f2",
+                      anchor="w").pack(fill="x", padx=20, pady=2)
+        else:
+            Label(enrolled_frame, text="No students yet", font=("Arial", 10),
+                  bg="#f2f2f2", fg="gray").pack(pady=5)
+
+    refresh_enrolled()
+
+    btn_text = "Join Now" if mode == "join" else "Volunteer Now" if mode == "volunteer" else "Schedule Session"
+
+    def on_action():
+        if mode == "join":
+            success = join_doubt(doubt_id, name)
+            if success:
+                messagebox.showinfo("Success", "You have successfully joined!", parent=join_root)
+                refresh_enrolled()
+            else:
+                messagebox.showinfo("Info", "You already joined this session.", parent=join_root)
+        elif mode == "volunteer":
+            success = volunteer_for_doubt(doubt_id, name)
+            if success:
+                messagebox.showinfo("Success", "You have successfully volunteered!", parent=join_root)
+                refresh_enrolled()
+            else:
+                messagebox.showinfo("Info", "You already volunteered for this doubt.", parent=join_root)
+        elif mode == "teacher":
+            room = clicked_block.get()
+            scheduled_at = time_entry.get().strip()
+            if not scheduled_at:
+                messagebox.showwarning("Error", "Please enter a date and time.", parent=join_root)
+                return
+            success = schedule_session(doubt_id, name, room, scheduled_at)
+            if success:
+                messagebox.showinfo("Success", "Session scheduled successfully!", parent=join_root)
+            else:
+                messagebox.showinfo("Info", "A session already exists for this doubt.", parent=join_root)
+
+    Button(main_frame, text=btn_text, font=("Arial", 14, "bold"),
+           bg="#23cff2", fg="white", width=15, bd=0, cursor="hand2",
+           activebackground="#1eb6d4", command=on_action).place(x=300, y=480, height=35)
+
+    def on_close():
+        join_root.destroy()
+        prev_root.deiconify()
+        if on_back:
+            on_back()          
+    join_root.protocol("WM_DELETE_WINDOW", on_close)
 
 image_bg = Image.open("assects/dashboard.jpg")
 resize_bg =image_bg.resize((800, 600))
@@ -400,3 +497,4 @@ button.place(x=370,y=390)
 button.bind("<Button-1>", lambda e: login_page())
 
 root.mainloop()
+
