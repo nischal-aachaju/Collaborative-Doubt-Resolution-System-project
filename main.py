@@ -5,15 +5,11 @@ import sqlite3
 import hashlib
 
 
-# ----------DATABASE SETUP----------------
+
+#-------------------DATABASE SETUP-------------------
 
 auth_conn = sqlite3.connect("userAuthUI.db")
 auth_cur = auth_conn.cursor()
-
-
-# ----------DATABASE TABLES----------------
-
-# Authentication table
 auth_cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         email             TEXT PRIMARY KEY,
@@ -25,10 +21,13 @@ auth_cur.execute("""
 """)
 auth_conn.commit()
 
-# Database of Application
+
+# ----------DATABASE TABLES----------------
+
 app_conn = sqlite3.connect("cdrs.db")
 app_cur = app_conn.cursor()
 
+# Authentication table
 # doubts table
 app_cur.execute("""
     CREATE TABLE IF NOT EXISTS doubts (
@@ -51,7 +50,6 @@ app_cur.execute("""
         UNIQUE(doubt_id, student_name)
     )
 """)
-
 # volunteers table
 app_cur.execute("""
     CREATE TABLE IF NOT EXISTS volunteers (
@@ -62,7 +60,6 @@ app_cur.execute("""
         UNIQUE(doubt_id, volunteer_name)
     )
 """)
-
 # sessions table
 app_cur.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
@@ -74,7 +71,6 @@ app_cur.execute("""
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 """)
-
 # rooms table
 app_cur.execute("""
     CREATE TABLE IF NOT EXISTS rooms (
@@ -91,6 +87,8 @@ app_cur.executemany(
 )
 app_conn.commit()
 
+
+
 # password hashing using sha256 python Hashlib
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -99,6 +97,7 @@ def hash_password(password):
 def get_user(email):
     auth_cur.execute("SELECT * FROM users WHERE email = ?", (email,))
     return auth_cur.fetchone()
+
 
 # function to create user
 def create_user(email, name, password, role, security_password):
@@ -112,12 +111,15 @@ def update_password(email, new_password):
                      (hash_password(new_password), email))
     auth_conn.commit()
 
-# function to post doubt
+# function to post doubt 
 def post_doubt(student_name, title, description):
     app_cur.execute("INSERT INTO doubts (student_name, title, description) VALUES (?, ?, ?)",
                     (student_name, title, description))
     app_conn.commit()
 
+def get_all_doubts():
+    app_cur.execute("SELECT * FROM doubts ORDER BY posted_at DESC")
+    return app_cur.fetchall()
 
 def update_doubt_status(doubt_id, status):
     app_cur.execute("UPDATE doubts SET status = ? WHERE id = ?", (status, doubt_id))
@@ -168,7 +170,9 @@ def get_available_rooms():
     return [row[0] for row in app_cur.fetchall()]
 
 
-#   UI
+
+# -----------------------UI-----------------------
+
 
 root = Tk()
 root.geometry("800x600")
@@ -347,12 +351,14 @@ def Navbar(page_root, username):
         login_page()
     logout_logo.bind("<Button-1>", lambda e: do_logout())
 
+
 def name_logo(frame):
     avtar_image = Image.open("assects/question.png").resize((20, 20))
     avtar_imageTk = ImageTk.PhotoImage(avtar_image)
     lbl_logo = Label(frame, image=avtar_imageTk, bd=0)
     lbl_logo.image = avtar_imageTk
     lbl_logo.place(x=28, y=10)
+
 
 def student_content(parent_frame, current_user, parent_root, doubt, on_back=None):
     doubt_id, posted_by, title, description, status, posted_at = doubt
@@ -447,6 +453,8 @@ def profile_page(name):
     profile_root.geometry("800x600")
     profile_root.resizable(0, 0)
     root.withdraw()
+    
+   
     Navbar(profile_root, name)
     Label(profile_root, text="Your Posted Doubts", font=("Arial", 14), fg="gray", bg="#f2f2f2").pack(pady=(0, 10))
 
@@ -482,6 +490,7 @@ def profile_page(name):
     def load_doubts():
         for w in data_frame.winfo_children():
             w.destroy()
+            
 
         app_cur.execute(
             "SELECT id, title, description, status, posted_at FROM doubts WHERE student_name = ? ORDER BY posted_at DESC",
@@ -525,6 +534,8 @@ def profile_page(name):
         profile_root.destroy()
         root.deiconify()
     profile_root.protocol("WM_DELETE_WINDOW", on_close)
+
+
 def post_page(name, on_back=None):
     post_root = Toplevel(root)
     post_root.title("Post")
@@ -560,7 +571,7 @@ def post_page(name, on_back=None):
         post_root.destroy()
         root.deiconify()
         if on_back:
-            on_back()          
+            on_back()
     post_root.protocol("WM_DELETE_WINDOW", on_close)
 
 
@@ -590,7 +601,7 @@ def student_page(name):
     def refresh_cards():
         for w in data_frame.winfo_children():
             w.destroy()
-        doubts = app_cur.execute("SELECT * FROM doubts ORDER BY posted_at DESC")
+        doubts = get_all_doubts()
         if doubts:
             for doubt in doubts:
                 student_content(data_frame, name, student_root, doubt, refresh_cards)
@@ -598,12 +609,13 @@ def student_page(name):
             Label(data_frame, text="No doubts posted yet.", font=("Arial", 14),
                   bg="#f2f2f2", fg="gray").pack(pady=40)
 
+
     button = Label(student_frame, text="Post doubts here", fg="white", bg="#00bcd4",
                    cursor="hand2", font=("Arial", 12, "bold"), padx=5, pady=2)
     button.place(x=625, y=10)
     button.bind("<Button-1>", lambda e: post_page(name, refresh_cards))
 
-    refresh_cards()   # initial load
+    refresh_cards()  
 
     def on_close():
         student_root.destroy()
@@ -636,7 +648,7 @@ def teacher_page(name):
     def refresh_cards():
         for w in data_frame.winfo_children():
             w.destroy()
-        doubts = app_cur.execute("SELECT * FROM doubts ORDER BY posted_at DESC")
+        doubts = get_all_doubts()
         if doubts:
             for doubt in doubts:
                 teacher_content(data_frame, name, teacher_root, doubt, refresh_cards)
@@ -644,7 +656,7 @@ def teacher_page(name):
             Label(data_frame, text="No doubts posted yet.", font=("Arial", 14),
                   bg="#f2f2f2", fg="gray").pack(pady=40)
 
-    refresh_cards()   # initial load
+    refresh_cards()   
 
     def on_close():
         teacher_root.destroy()
@@ -748,12 +760,13 @@ def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
         join_root.destroy()
         prev_root.deiconify()
         if on_back:
-            on_back()          
+            on_back()
     join_root.protocol("WM_DELETE_WINDOW", on_close)
 
 
-#-------------------------MAIN DASHBOARD-------------------------
-#------background image------
+#   MAIN DASHBOARD
+
+
 image_bg = Image.open("assects/dashboard.png")
 resize_bg = image_bg.resize((800, 600))
 final_bg = ImageTk.PhotoImage(resize_bg)
