@@ -62,6 +62,45 @@ app_cur.execute("""
     )
 """)
 
+# Insert default rooms # refrences from stackoverflow
+app_cur.executemany(
+    "INSERT OR IGNORE INTO rooms (room_name) VALUES (?)",
+    [("Block-E Seminar hall",), ("Block-D Seminar hall",), ("Block-C Seminar hall",)]
+)
+app_conn.commit()
+
+# password hashing using sha256 python Hashlib
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# function to get user
+def get_user(email):
+    auth_cur.execute("SELECT * FROM users WHERE email = ?", (email,))
+    return auth_cur.fetchone()
+
+# function to create user
+def create_user(email, name, password, role, security_password):
+    auth_cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?)",
+                     (email, name, hash_password(password), role, security_password))
+    auth_conn.commit()
+
+# function to update password
+def update_password(email, new_password):
+    auth_cur.execute("UPDATE users SET password = ? WHERE email = ?",
+                     (hash_password(new_password), email))
+    auth_conn.commit()
+
+# function to post doubt
+def post_doubt(student_name, title, description):
+    app_cur.execute("INSERT INTO doubts (student_name, title, description) VALUES (?, ?, ?)",
+                    (student_name, title, description))
+    app_conn.commit()
+
+
+def update_doubt_status(doubt_id, status):
+    app_cur.execute("UPDATE doubts SET status = ? WHERE id = ?", (status, doubt_id))
+    app_conn.commit()
+
 def login_page():
     login_root = Toplevel(root)
     login_root.geometry("800x650")
