@@ -344,6 +344,37 @@ def teacher_content(parent_frame, current_user, parent_root, doubt, on_back=None
     Enroll.place(x=10, y=115)
     Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "teacher", on_back))
 
+def volunteer_for_doubt(doubt_id, volunteer_name):
+    try:
+        app_cur.execute("INSERT INTO volunteers (doubt_id, volunteer_name) VALUES (?, ?)",
+                        (doubt_id, volunteer_name))
+        app_conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+def get_volunteers(doubt_id):
+    app_cur.execute("SELECT volunteer_name, volunteered_at FROM volunteers WHERE doubt_id = ?", (doubt_id,))
+    return app_cur.fetchall()
+
+def schedule_session(doubt_id, teacher_name, room, scheduled_at):
+    try:
+        app_cur.execute("INSERT INTO sessions (doubt_id, teacher_name, room, scheduled_at) VALUES (?, ?, ?, ?)",
+                        (doubt_id, teacher_name, room, scheduled_at))
+        app_conn.commit()
+        update_doubt_status(doubt_id, "Scheduled")
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+def get_session(doubt_id):
+    app_cur.execute("SELECT * FROM sessions WHERE doubt_id = ?", (doubt_id,))
+    return app_cur.fetchone()
+
+def get_available_rooms():
+    app_cur.execute("SELECT room_name FROM rooms WHERE is_available = 1")
+    return [row[0] for row in app_cur.fetchall()]
+
 
 def post_page(name, on_back=None):
     post_root = Toplevel(root)
