@@ -35,7 +35,32 @@ app_cur.execute("""
         UNIQUE(doubt_id, student_name)
     )
 """)
-
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS volunteers (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id       INTEGER NOT NULL REFERENCES doubts(id),
+        volunteer_name TEXT NOT NULL,
+        volunteered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(doubt_id, volunteer_name)
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS sessions (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id     INTEGER UNIQUE NOT NULL REFERENCES doubts(id),
+        teacher_name TEXT NOT NULL,
+        room         TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL,
+        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS rooms (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_name    TEXT NOT NULL UNIQUE,
+        is_available INTEGER DEFAULT 1
+    )
+""")
 
 def login_page():
     login_root = Toplevel(root)
