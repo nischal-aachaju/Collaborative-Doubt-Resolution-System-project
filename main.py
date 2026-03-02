@@ -12,6 +12,31 @@ root.geometry("800x600")
 root.resizable(0,0)
 root.iconbitmap('assects/logo.ico')
 
+
+app_conn = sqlite3.connect("cdrs.db")
+app_cur = app_conn.cursor()
+
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS doubts (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_name TEXT NOT NULL,
+        title        TEXT NOT NULL,
+        description  TEXT NOT NULL,
+        status       TEXT DEFAULT 'Open',
+        posted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS participants (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id     INTEGER NOT NULL REFERENCES doubts(id),
+        student_name TEXT NOT NULL,
+        joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(doubt_id, student_name)
+    )
+""")
+
+
 def login_page():
     login_root = Toplevel(root)
     login_root.geometry("800x650")
