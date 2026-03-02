@@ -12,6 +12,56 @@ root.geometry("800x600")
 root.resizable(0,0)
 root.iconbitmap('assects/logo.ico')
 
+
+app_conn = sqlite3.connect("cdrs.db")
+app_cur = app_conn.cursor()
+
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS doubts (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_name TEXT NOT NULL,
+        title        TEXT NOT NULL,
+        description  TEXT NOT NULL,
+        status       TEXT DEFAULT 'Open',
+        posted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS participants (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id     INTEGER NOT NULL REFERENCES doubts(id),
+        student_name TEXT NOT NULL,
+        joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(doubt_id, student_name)
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS volunteers (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id       INTEGER NOT NULL REFERENCES doubts(id),
+        volunteer_name TEXT NOT NULL,
+        volunteered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(doubt_id, volunteer_name)
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS sessions (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        doubt_id     INTEGER UNIQUE NOT NULL REFERENCES doubts(id),
+        teacher_name TEXT NOT NULL,
+        room         TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL,
+        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+""")
+app_cur.execute("""
+    CREATE TABLE IF NOT EXISTS rooms (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_name    TEXT NOT NULL UNIQUE,
+        is_available INTEGER DEFAULT 1
+    )
+""")
+
 def login_page():
     login_root = Toplevel(root)
     login_root.geometry("800x650")
@@ -258,83 +308,132 @@ def name_logo(frame):
     lbl_logo.image = avtar_imageTk
     lbl_logo.place(x=28,y=10)
 
-def student_content(root):
-    frame=Frame(root,bg="#E1E9E5",width=750,height=150,bd=2,relief="groove")
+def student_content(parent_frame, current_user, parent_root, doubt, on_back=None):
+    doubt_id, posted_by, title, description, status, posted_at = doubt
+
+    frame = Frame(parent_frame, bg="#E1E9E5", width=750, height=150, bd=2, relief="groove")
     frame.pack_propagate(False)
     frame.pack(pady=10)
-    #-------------------avtar image----------------------
     name_logo(frame)
 
-    Label(frame,text="Nischal",font=("Arial",12,"bold"),bg="#E1E9E5").place(x=50,y=10)
-    Label(frame,text="Topic: "+"Use of pack_propogate()",font=("Arial",10,"bold"),bg="#E1E9E5").place(x=25,y=40)
-    Label(frame,text="loram hello world If you don't use this line, the frame will shrink\n or expand to perfectlyfit whatever buttons or labels you"+" ......",
-            font=("Arial",10),
-            bg="#E1E9E5",
-            justify="left"
-            ).place(x=25,y=60)
-    Volunteer = Label(frame,
-                    text="Volunteer",
-                    bd=2,relief="groove",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2)
-    Volunteer.place(x=30,y=110)
-    Volunteer.bind("<Button-1>", lambda e: login_page())
-    Teacher = Label(frame,
-                    text="Teacher_name",
-                    bd=2,relief="groove",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2)
-    Teacher.place(x=130,y=110)
-    Teacher.bind("<Button-1>", lambda e: login_page())
+    Label(frame, text=posted_by, font=("Arial", 12, "bold"), bg="#E1E9E5").place(x=50, y=10)
+    Label(frame, text="Topic: " + title, font=("Arial", 10, "bold"), bg="#E1E9E5").place(x=25, y=40)
+    short_desc = description[:80] + " ......" if len(description) > 80 else description
+    Label(frame, text=short_desc, font=("Arial", 10), bg="#E1E9E5", justify="left").place(x=25, y=60)
 
-    frame2=Frame(frame,bg="#E1E9E5",width=200,height=145)
-    frame2.place(x=545,y=0) 
-    Label(frame2,text="👨🏽‍🎓"+"Enrolled Students",font=("Arial",12,),bg="#E1E9E5").place(x=10,y=10)
-    Label(frame2,text="• "+"Name1",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=30)
-    Label(frame2,text="• "+"Name2",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=50)
-    Label(frame2,text="• "+"Name3",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=70)
-    Label(frame2,text="• "+"Name4",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=90)
+    Volunteer = Label(frame, text="Volunteer", bd=2, relief="groove",
+                      fg="white", bg="#23cff2", cursor="hand2", font=("Arial", 12, "bold"), padx=5, pady=2)
+    Volunteer.place(x=30, y=110)
+    Volunteer.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "volunteer", on_back))
 
-    Enroll = Label(frame2,
-                    text="Enroll Now",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2,bd=2,relief="groove")
-    Enroll.place(x=30,y=115)
-    Enroll.bind("<Button-1>", lambda e: login_page())
+    session = get_session(doubt_id)
+    teacher_label = session[2] if session else "No Teacher Yet"
+    Teacher = Label(frame, text=teacher_label, bd=2, relief="groove",
+                    fg="white", bg="#23cff2", cursor="hand2", font=("Arial", 12, "bold"), padx=5, pady=2)
+    Teacher.place(x=130, y=110)
+    Teacher.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "join", on_back))
 
+    frame2 = Frame(frame, bg="#E1E9E5", width=200, height=145)
+    frame2.place(x=545, y=0)
+    Label(frame2, text="👨🏽‍🎓 Enrolled Students", font=("Arial", 12), bg="#E1E9E5").place(x=10, y=10)
 
-def teacher_content(root,name):
-    frame=Frame(root,bg="#E1E9E5",width=750,height=150,bd=2,relief="groove")
-    frame.pack_propagate(False)
-    frame.pack(pady=10)
-    #-------------------avtar image----------------------
+    participants = get_participants(doubt_id)
+    volunteers  = get_volunteers(doubt_id)
+    all_enrolled = [(pname, "student") for pname, _ in participants] + \
+                   [(vname, "volunteer") for vname, _ in volunteers]
+    if all_enrolled:
+        for i, (pname, role) in enumerate(all_enrolled[:4]):
+            display = f"• {pname} (volunteer)" if role == "volunteer" else f"• {pname}"
+            Label(frame2, text=display, font=("Arial", 10), bg="#E1E9E5").place(x=10, y=30 + i * 20)
+    else:
+        Label(frame2, text="No students yet", font=("Arial", 10), fg="gray", bg="#E1E9E5").place(x=10, y=30)
 
-    name_logo(frame)
-    Label(frame,text="Nischal",font=("Arial",12,"bold"),bg="#E1E9E5").place(x=50,y=10)
-    Label(frame,text="Topic: "+"Use of pack_propogate()",font=("Arial",10,"bold"),bg="#E1E9E5").place(x=25,y=40)
-    Label(frame,text="loram hello world If you don't use this line, the frame will shrink\n or expand to perfectlyfit whatever buttons or labels you"+" ......",
-            font=("Arial",10),
-            bg="#E1E9E5",
-            justify="left"
-            ).place(x=25,y=60)
-    Volunteer = Label(frame,
-                    text="Volunteer _name",
-                    bd=2,relief="groove",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2)
-    Volunteer.place(x=30,y=110)
-    Volunteer.bind("<Button-1>", lambda e: login_page())
+    Enroll = Label(frame2, text="Enroll Now", fg="white", bg="#23cff2", cursor="hand2",
+                   font=("Arial", 12, "bold"), padx=5, pady=2, bd=2, relief="groove")
+    Enroll.place(x=10, y=115)
+    Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "join", on_back))
 
 
-    frame2=Frame(frame,bg="#E1E9E5",width=200,height=145)
-    frame2.place(x=545,y=0) 
-    Label(frame2,text="👨🏽‍🎓"+"Enrolled Students",font=("Arial",12,),bg="#E1E9E5").place(x=10,y=10)
-    Label(frame2,text="• "+"Name1",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=30)
-    Label(frame2,text="• "+"Name2",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=50)
-    Label(frame2,text="• "+"Name3",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=70)
-    Label(frame2,text="• "+"Name4",font=("Arial",10,),bg="#E1E9E5").place(x=30,y=90)
+def teacher_page(name):
+    teacher_root = Toplevel(root)
+    teacher_root.geometry("800x650")
+    teacher_root.resizable(0, 0)
+    teacher_root.title("Teacher")
+    root.withdraw()
+    Navbar(teacher_root, name)
 
-    Enroll = Label(frame2,
-                    text="Join as tutor",
-                    fg="white",bg="#23cff2", cursor="hand2",font=("Arial",12,"bold"),padx=5,pady=2,bd=2,relief="groove")
-    Enroll.place(x=30,y=115)
-    Enroll.bind("<Button-1>", lambda e: joining_page(root,name))
+    teacher_frame = Frame(teacher_root, bg="#f2f2f2", width=800, height=650)
+    teacher_frame.pack_propagate(False)
+    teacher_frame.pack()
+    Label(teacher_frame, text="Teacher Dashboard", font=("Arial", 12, "bold"), bg="#f2f2f2").place(x=20, y=10)
+
+    canvas = Canvas(teacher_frame, bg="#f2f2f2", width=760, height=560)
+    scrollbar = Scrollbar(teacher_frame, orient=VERTICAL, command=canvas.yview)
+    data_frame = Frame(canvas, bg="#f2f2f2")
+    data_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=data_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.place(x=10, y=45)
+    scrollbar.place(x=770, y=45, height=560)
+
+    def refresh_cards():
+        for w in data_frame.winfo_children():
+            w.destroy()
+        doubts = get_all_doubts()
+        if doubts:
+            for doubt in doubts:
+                teacher_content(data_frame, name, teacher_root, doubt, refresh_cards)
+        else:
+            Label(data_frame, text="No doubts posted yet.", font=("Arial", 14),
+                  bg="#f2f2f2", fg="gray").pack(pady=40)
+
+    refresh_cards()   # initial load
+
+    def on_close():
+        teacher_root.destroy()
+        root.deiconify()
+    teacher_root.protocol("WM_DELETE_WINDOW", on_close)
+
+
+
+def post_page(name, on_back=None):
+    post_root = Toplevel(root)
+    post_root.title("Post")
+    post_root.geometry("800x600")
+    post_root.resizable(0, 0)
+    post_root.configure(bg="#f2f2f2")
+    root.withdraw()
+    Navbar(post_root, name)
+
+    def submit_post():
+        title = title_entry.get().strip()
+        description = description_entry.get("1.0", END).strip()
+        if not title or not description:
+            messagebox.showwarning("Error", "Title and Description are required", parent=post_root)
+            return
+        post_doubt(name, title, description)
+        messagebox.showinfo("Success", "Doubt posted successfully!", parent=post_root)
+        title_entry.delete(0, END)
+        description_entry.delete("1.0", END)
+
+    Label(post_root, text="Title", font=("Arial", 16), bg="#f2f2f2").place(x=50, y=100)
+    title_entry = Entry(post_root, font=("Arial", 14), width=30, bd=1, relief="solid")
+    title_entry.place(x=50, y=135)
+    Label(post_root, text="Description", font=("Arial", 16), bg="#f2f2f2").place(x=50, y=190)
+    description_entry = Text(post_root, font=("Arial", 12), width=60, height=10, bd=1, relief="solid")
+    description_entry.place(x=50, y=225)
+    post_btn = Label(post_root, text="Post now  +", font=("Arial", 16, "bold"),
+                     bg="#23cff2", fg="white", padx=20, pady=10, cursor="hand2", bd=1, relief="solid")
+    post_btn.place(x=50, y=450)
+    post_btn.bind("<Button-1>", lambda e: submit_post())
+
+    def on_close():
+        post_root.destroy()
+        root.deiconify()
+        if on_back:
+            on_back()          
+    post_root.protocol("WM_DELETE_WINDOW", on_close)
+
 def student_page(name):
     student_root = Toplevel(root)
     student_root.geometry("800x650")
@@ -366,6 +465,90 @@ def student_page(name):
         root.deiconify() 
 
     student_root.protocol("WM_DELETE_WINDOW", new_window)
+def profile_page(name):
+    profile_root = Toplevel(root)
+    profile_root.title("Profile")
+    profile_root.geometry("800x600")
+    profile_root.resizable(0, 0)
+    root.withdraw()
+    Navbar(profile_root, name)
+    Label(profile_root, text="Your Posted Doubts", font=("Arial", 14), fg="gray", bg="#f2f2f2").pack(pady=(0, 10))
+
+    profile_root.configure(bg="#f2f2f2")
+
+    canvas = Canvas(profile_root, bg="#f2f2f2", width=760, height=430)
+    scrollbar = Scrollbar(profile_root, orient=VERTICAL, command=canvas.yview)
+    data_frame = Frame(canvas, bg="#f2f2f2")
+    data_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=data_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.pack(side=LEFT, padx=(20, 0))
+    scrollbar.pack(side=LEFT, fill=Y)
+
+    def delete_doubt(doubt_id):
+        confirm = messagebox.askyesno(
+            "Delete Doubt",
+            "Are you sure you want to delete this doubt?\nThis will also remove all related participants, volunteers, and sessions.",
+            parent=profile_root
+        )
+        if not confirm:
+            return
+
+        app_cur.execute("DELETE FROM participants WHERE doubt_id = ?", (doubt_id,))
+        app_cur.execute("DELETE FROM volunteers WHERE doubt_id = ?", (doubt_id,))
+        app_cur.execute("DELETE FROM sessions WHERE doubt_id = ?", (doubt_id,))
+        app_cur.execute("DELETE FROM doubts WHERE id = ?", (doubt_id,))
+        app_conn.commit()
+
+        messagebox.showinfo("Deleted", "Doubt deleted successfully.", parent=profile_root)
+        load_doubts()
+
+    def load_doubts():
+        for w in data_frame.winfo_children():
+            w.destroy()
+
+        app_cur.execute(
+            "SELECT id, title, description, status, posted_at FROM doubts WHERE student_name = ? ORDER BY posted_at DESC",
+            (name,)
+        )
+        user_doubts = app_cur.fetchall()
+
+        if not user_doubts:
+            Label(data_frame, text="You haven't posted any doubts yet.",
+                  font=("Arial", 13), fg="gray", bg="#f2f2f2").pack(pady=40)
+            return
+
+        for doubt_id, title, description, status, posted_at in user_doubts:
+            card = Frame(data_frame, bg="#E1E9E5", width=730, height=120, bd=2, relief="groove")
+            card.pack_propagate(False)
+            card.pack(pady=8)
+
+            status_color = "#4CAF50" if status == "Open" else "#FF9800" if status == "Scheduled" else "#9E9E9E"
+
+            Label(card, text=title, font=("Arial", 12, "bold"), bg="#E1E9E5").place(x=15, y=10)
+
+            short_desc = description[:90] + "..." if len(description) > 90 else description
+            Label(card, text=short_desc, font=("Arial", 10), bg="#E1E9E5",
+                  justify="left", wraplength=480).place(x=15, y=38)
+
+            Label(card, text=f"Posted: {posted_at[:16]}", font=("Arial", 9), fg="gray", bg="#E1E9E5").place(x=15, y=88)
+
+            Label(card, text=f" {status} ", font=("Arial", 9, "bold"),
+                  bg=status_color, fg="white").place(x=580, y=10)
+
+            # Delete button
+            del_btn = Label(card, text="🗑 Delete", font=("Arial", 10, "bold"),
+                            bg="#e53935", fg="white", cursor="hand2", padx=8, pady=3,
+                            bd=1, relief="solid")
+            del_btn.place(x=580, y=80)
+            del_btn.bind("<Button-1>", lambda e, did=doubt_id: delete_doubt(did))
+
+    load_doubts()
+
+    def on_close():
+        profile_root.destroy()
+        root.deiconify()
+    profile_root.protocol("WM_DELETE_WINDOW", on_close)
 
 def teacher_page(name):
     teacher_root = Toplevel(root)
@@ -481,37 +664,6 @@ def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
         if on_back:
             on_back()          
     join_root.protocol("WM_DELETE_WINDOW", on_close)
-def Navbar(page_root, username):
-    nav_frame = Frame(page_root, bg="#23cff2", height=80)
-    nav_frame.pack(fill=X)
-    image_logo = Image.open("assects/logo.png").resize((80, 80))
-    image_logoTk = ImageTk.PhotoImage(image_logo)
-    lbl_logo = Label(nav_frame, image=image_logoTk, bd=0)
-    lbl_logo.image = image_logoTk
-    lbl_logo.place(x=10, y=0)
-    image_text = Image.open("assects/logo_text.png").resize((150, 50))
-    image_textTk = ImageTk.PhotoImage(image_text)
-    text_logo = Label(nav_frame, image=image_textTk, bd=0)
-    text_logo.image = image_textTk
-    text_logo.place(x=100, y=15)
-    image_profile = Image.open("assects/main_profile.png").resize((40, 40))
-    image_profileTk = ImageTk.PhotoImage(image_profile)
-    profile_logo = Label(nav_frame, image=image_profileTk, bd=0)
-    profile_logo.image = image_profileTk
-    profile_logo.bind("<Button-1>", lambda e: profile_page(username))
-    profile_logo.place(x=700, y=10)
-    text_profile = Label(nav_frame, text=username + ";", font=("Arial", 14), bg="#23cff2", fg="black", bd=0)
-    text_profile.place(x=640, y=54)
-    image_logout = Image.open("assects/logout.png").resize((30, 30))
-    image_logoutTk = ImageTk.PhotoImage(image_logout)
-    logout_logo = Label(nav_frame, image=image_logoutTk, bd=0)
-    logout_logo.image = image_logoutTk
-    logout_logo.place(x=750, y=22)
-    def do_logout():
-        page_root.destroy()
-        root.deiconify()
-        login_page()
-    logout_logo.bind("<Button-1>", lambda e: do_logout())
 
 image_bg = Image.open("assects/dashboard.jpg")
 resize_bg =image_bg.resize((800, 600))
