@@ -354,45 +354,46 @@ def student_content(parent_frame, current_user, parent_root, doubt, on_back=None
     Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "join", on_back))
 
 
-def teacher_content(parent_frame, current_user, parent_root, doubt, on_back=None):
-    doubt_id, posted_by, title, description, status, posted_at = doubt
+def teacher_page(name):
+    teacher_root = Toplevel(root)
+    teacher_root.geometry("800x650")
+    teacher_root.resizable(0, 0)
+    teacher_root.title("Teacher")
+    root.withdraw()
+    Navbar(teacher_root, name)
 
-    frame = Frame(parent_frame, bg="#E1E9E5", width=750, height=150, bd=2, relief="groove")
-    frame.pack_propagate(False)
-    frame.pack(pady=10)
-    name_logo(frame)
+    teacher_frame = Frame(teacher_root, bg="#f2f2f2", width=800, height=650)
+    teacher_frame.pack_propagate(False)
+    teacher_frame.pack()
+    Label(teacher_frame, text="Teacher Dashboard", font=("Arial", 12, "bold"), bg="#f2f2f2").place(x=20, y=10)
 
-    Label(frame, text=posted_by, font=("Arial", 12, "bold"), bg="#E1E9E5").place(x=50, y=10)
-    Label(frame, text="Topic: " + title, font=("Arial", 10, "bold"), bg="#E1E9E5").place(x=25, y=40)
-    short_desc = description[:80] + " ......" if len(description) > 80 else description
-    Label(frame, text=short_desc, font=("Arial", 10), bg="#E1E9E5", justify="left").place(x=25, y=60)
+    canvas = Canvas(teacher_frame, bg="#f2f2f2", width=760, height=560)
+    scrollbar = Scrollbar(teacher_frame, orient=VERTICAL, command=canvas.yview)
+    data_frame = Frame(canvas, bg="#f2f2f2")
+    data_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=data_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    canvas.place(x=10, y=45)
+    scrollbar.place(x=770, y=45, height=560)
 
-    volunteers  = get_volunteers(doubt_id)
-    vol_label = volunteers[0][0] if volunteers else "No Volunteer Yet"
-    Volunteer = Label(frame, text=vol_label, bd=2, relief="groove",
-                      fg="white", bg="#23cff2", cursor="hand2", font=("Arial", 12, "bold"), padx=5, pady=2)
-    Volunteer.place(x=30, y=110)
-    Volunteer.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "teacher", on_back))
+    def refresh_cards():
+        for w in data_frame.winfo_children():
+            w.destroy()
+        doubts = get_all_doubts()
+        if doubts:
+            for doubt in doubts:
+                teacher_content(data_frame, name, teacher_root, doubt, refresh_cards)
+        else:
+            Label(data_frame, text="No doubts posted yet.", font=("Arial", 14),
+                  bg="#f2f2f2", fg="gray").pack(pady=40)
 
-    frame2 = Frame(frame, bg="#E1E9E5", width=200, height=145)
-    frame2.place(x=545, y=0)
-    Label(frame2, text="👨🏽‍🎓 Enrolled Students", font=("Arial", 12), bg="#E1E9E5").place(x=10, y=10)
+    refresh_cards()   # initial load
 
-    participants = get_participants(doubt_id)
-    volunteers  = get_volunteers(doubt_id)
-    all_enrolled = [(pname, "student") for pname, _ in participants] + \
-                   [(vname, "volunteer") for vname, _ in volunteers]
-    if all_enrolled:
-        for i, (pname, role) in enumerate(all_enrolled[:4]):
-            display = f"• {pname} (volunteer)" if role == "volunteer" else f"• {pname}"
-            Label(frame2, text=display, font=("Arial", 10), bg="#E1E9E5").place(x=10, y=30 + i * 20)
-    else:
-        Label(frame2, text="No students yet", font=("Arial", 10), fg="gray", bg="#E1E9E5").place(x=10, y=30)
+    def on_close():
+        teacher_root.destroy()
+        root.deiconify()
+    teacher_root.protocol("WM_DELETE_WINDOW", on_close)
 
-    Enroll = Label(frame2, text="Join as tutor", fg="white", bg="#23cff2", cursor="hand2",
-                   font=("Arial", 12, "bold"), padx=5, pady=2, bd=2, relief="groove")
-    Enroll.place(x=10, y=115)
-    Enroll.bind("<Button-1>", lambda e: joining_page(parent_root, current_user, doubt_id, "teacher", on_back))
 
 
 def post_page(name, on_back=None):
