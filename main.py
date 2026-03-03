@@ -214,6 +214,13 @@ def login_page():
         if reg_password.get() != reg_con_password.get():
             messagebox.showwarning("Error", "Passwords do not match", parent=login_root)
             return
+    
+        if "@" not in reg_email.get() or "." not in reg_email.get():
+            messagebox.showwarning("Error", "Invalid email format", parent=login_root)
+            return
+        if reg_email.get().count("@") != 1 or reg_email.get().count(".") != 1:
+            messagebox.showwarning("Error", "Invalid email format", parent=login_root)
+            return
         if not all([reg_email.get(), reg_name.get(), reg_password.get(), role_var.get(), security_password.get()]):
             messagebox.showwarning("Error", "All fields are required", parent=login_root)
             return
