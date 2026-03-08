@@ -467,13 +467,12 @@ def profile_page(name):
     profile_root.geometry("800x600")
     profile_root.resizable(0, 0)
     root.withdraw()
-    
-   
+
     Navbar(profile_root, name)
     Label(profile_root, text="Your Posted Doubts", font=("Arial", 14), fg="gray", bg="#f2f2f2").pack(pady=(0, 10))
 
     profile_root.configure(bg="#f2f2f2")
-
+# it makes scroolbar on the page
     canvas = Canvas(profile_root, bg="#f2f2f2", width=760, height=430)
     scrollbar = Scrollbar(profile_root, orient=VERTICAL, command=canvas.yview)
     data_frame = Frame(canvas, bg="#f2f2f2")
@@ -505,7 +504,6 @@ def profile_page(name):
         for w in data_frame.winfo_children():
             w.destroy()
             
-
         app_cur.execute(
             "SELECT id, title, description, status, posted_at FROM doubts WHERE student_name = ? ORDER BY posted_at DESC",
             (name,)
@@ -583,7 +581,7 @@ def post_page(name, on_back=None):
 
     def on_close():
         post_root.destroy()
-        root.deiconify()
+        # root.deiconify()
         if on_back:
             on_back()
     post_root.protocol("WM_DELETE_WINDOW", on_close)
@@ -602,7 +600,7 @@ def student_page(name):
     student_frame.pack()
     Label(student_frame, text="Welcome;", font=("Arial", 12, "bold"), bg="#f2f2f2").place(x=20, y=10)
     Label(student_frame, text="Do you have any doubts?", font=("Arial", 10), bg="#f2f2f2").place(x=470, y=14)
-
+# creates scrollbar for the data.
     canvas = Canvas(student_frame, bg="#f2f2f2", width=760, height=560)
     scrollbar = Scrollbar(student_frame, orient=VERTICAL, command=canvas.yview)
     data_frame = Frame(canvas, bg="#f2f2f2")
@@ -690,11 +688,13 @@ def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
 
     main_frame = Frame(join_root, bg="white", width=760, height=540)
     main_frame.place(x=20, y=100)
-
+    # data from backend
     app_cur.execute("SELECT * FROM doubts WHERE id = ?", (doubt_id,))
     doubt = app_cur.fetchone()
 
     name_logo(main_frame)
+    # doubt=(1,"nischal","title","desc","status","posted_at")
+
     Label(main_frame, text=doubt[1], font=("Arial", 14, "bold"), bg="white").place(x=60, y=8)
 
     title_entry = Entry(main_frame, font=("Arial", 12), width=45, bd=1, relief="solid", bg="#f2f2f2")
@@ -705,8 +705,8 @@ def joining_page(prev_root, name, doubt_id, mode="join", on_back=None):
     desc_text.insert("1.0", doubt[3])
     desc_text.place(x=30, y=140)
 
-    available_rooms = get_available_rooms()
-    clicked_block = StringVar(value=available_rooms[0] if available_rooms else "No rooms available")
+    available_rooms = get_available_rooms() #(1,2,3)
+    clicked_block = StringVar(value=available_rooms[1] if available_rooms else "No rooms available")
     Label(main_frame, text="Select Location:", font=("Arial", 10), bg="white").place(x=30, y=295)
     block_menu = OptionMenu(main_frame, clicked_block, *available_rooms)
     block_menu.config(bg="#f2f2f2", fg="black", font=("Arial", 11), indicatoron=True, bd=1, relief="solid")
