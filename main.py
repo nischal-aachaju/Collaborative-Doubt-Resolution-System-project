@@ -88,16 +88,14 @@ app_cur.executemany(
 app_conn.commit()
 
 
-
 # password hashing using sha256 python Hashlib
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 # function to get user
 def get_user(email):
-    auth_cur.execute("SELECT * FROM users WHERE email = ?", (email,))
+    auth_cur.execute("SELECT * FROM users WHERE email = ?", (email))
     return auth_cur.fetchone()
-
 
 # function to create user
 def create_user(email, name, password, role, security_password):
@@ -187,6 +185,7 @@ def login_page():
     login_root.title("Login")
     root.withdraw()
 
+# pack_forget() is module of tkinter which is used to hide frame and only show the frame which is called.
     def show_frame(frame):
         login_frame.pack_forget()
         register_frame.pack_forget()
@@ -194,21 +193,24 @@ def login_page():
         frame.pack(pady=60)
 
     def login():
-        if not login_email.get() or not login_password.get():
-            messagebox.showwarning("Error", "All fields are required", parent=login_root)
-            return
-        record = get_user(login_email.get())
-        if record and hash_password(login_password.get()) == record[2]:
-            login_password.delete(0, END)
-            login_email.delete(0, END)
-            login_root.destroy()
-            if record[3] == "Student":
-                student_page(record[1])
-            elif record[3] == "Teacher":
-                teacher_page(record[1])
-        else:
-            messagebox.showerror("Error", "Invalid credentials", parent=login_root)
-            login_password.delete(0, END)
+        try:
+            if not login_email.get() or not login_password.get():
+                messagebox.showwarning("Error", "All fields are required", parent=login_root)
+                return
+            record = get_user(login_email.get())
+            if record and hash_password(login_password.get()) == record[2]:
+                login_password.delete(0, END)
+                login_email.delete(0, END)
+                login_root.destroy()
+                if record[3] == "Student":
+                    student_page(record[1])
+                elif record[3] == "Teacher":
+                    teacher_page(record[1])
+            else:
+                messagebox.showerror("Error", "Invalid credentials", parent=login_root)
+                login_password.delete(0, END)
+        except:
+            messagebox.showwarning("Error","User doesn't exist")
 
     def register():
         if reg_password.get() != reg_con_password.get():
@@ -218,13 +220,12 @@ def login_page():
         if "@" not in reg_email.get() or "." not in reg_email.get():
             messagebox.showwarning("Error", "Invalid email format", parent=login_root)
             return
-        if reg_email.get().count("@") != 1 or reg_email.get().count(".") != 1:
+        if reg_email.get().count("@") !=1:
             messagebox.showwarning("Error", "Invalid email format", parent=login_root)
             return
         if len(reg_password.get())<8:
             messagebox.showwarning("Error", "Password must be atleast 8 character", parent=login_root)
             return
-            
         
         if not all([reg_email.get(), reg_name.get(), reg_password.get(), role_var.get(), security_password.get()]):
             messagebox.showwarning("Error", "All fields are required", parent=login_root)
@@ -257,13 +258,14 @@ def login_page():
         forgot_security_password.delete(0, END)
         show_frame(login_frame)
 
+# login frame UI code
     login_frame = Frame(login_root, bg="white", width=500, height=480)
-    login_frame.pack_propagate(False)
-    login_frame.pack(pady=60)
+    login_frame.pack_propagate(False) # -->  tkinter module which prevent a widget (typically a Frame or the main
+    login_frame.pack(pady=60)            # Tk window) from shrinking or growing to fit the size of its child widgets. 
     Label(login_frame, text="Login", font=("Arial", 24, "bold"), bg="white").pack(pady=(20, 5))
     Label(login_frame, text="to solve doubt", fg="gray", bg="white").pack(pady=(0, 20))
     Label(login_frame, text="Email", bg="white", font=("Arial", 16)).place(x=50, y=120)
-    login_email = Entry(login_frame, width=30, bd=2, relief="groove", font=("Arial", 16))
+    login_email = Entry(login_frame, width=30, bd=2, relief="groove",font=("Arial", 16))
     login_email.place(x=50, y=155)
     Label(login_frame, text="Password", bg="white", font=("Arial", 16)).place(x=50, y=210)
     login_password = Entry(login_frame, width=30, show="*", bd=2, relief="groove", font=("Arial", 16))
@@ -788,7 +790,7 @@ lbl.image = final_bg
 lbl.pack()
 
 button = Label(root, text="Login", fg="white", bg="#72dae4", cursor="hand2",
-               font=("Arial", 16, "bold"), padx=20, pady=2)
+        font=("Arial", 16, "bold"), padx=20, pady=2)
 button.place(x=350, y=390)
 button.bind("<Button-1>", lambda e: login_page())
 
