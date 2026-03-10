@@ -94,7 +94,7 @@ def hash_password(password):
 
 # function to get user
 def get_user(email):
-    auth_cur.execute("SELECT * FROM users WHERE email = ?", (email))
+    auth_cur.execute("SELECT * FROM users WHERE email = ?",( email,))
     return auth_cur.fetchone()
 
 # function to create user
@@ -193,7 +193,7 @@ def login_page():
         frame.pack(pady=60)
 
     def login():
-        try:
+        # try:
             if not login_email.get() or not login_password.get():
                 messagebox.showwarning("Error", "All fields are required", parent=login_root)
                 return
@@ -209,8 +209,8 @@ def login_page():
             else:
                 messagebox.showerror("Error", "Invalid credentials", parent=login_root)
                 login_password.delete(0, END)
-        except:
-            messagebox.showwarning("Error","User doesn't exist")
+        # except:
+            # messagebox.showwarning("Error","User doesn't exist")
 
     def register():
         if reg_password.get() != reg_con_password.get():
