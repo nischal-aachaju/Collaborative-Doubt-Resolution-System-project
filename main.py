@@ -242,13 +242,13 @@ def login_page():
             reg_password.config(show='')
             reg_con_password.config(show='')
             new_password.config(show='')
-            toggle_btn.config(text='Hide')
+            
         else:
             login_password.config(show='*')
             reg_password.config(show='*')
             reg_con_password.config(show='*')
             new_password.config(show='*')
-            toggle_btn.config(text='Show')
+         
     def reset_password():
         if not forgot_email.get() or not new_password.get():
             messagebox.showwarning("Error", "All fields required", parent=login_root)
@@ -283,7 +283,7 @@ def login_page():
     Label(login_frame, text="Password", bg="white", font=("Arial", 16)).place(x=50, y=210)
     login_password = Entry(login_frame, width=30, show="*", bd=2, relief="groove", font=("Arial", 16))
     login_password.place(x=50, y=245)
-    toggle_btn = Button(login_frame, text='Show', width=4, command=toggle_password, 
+    toggle_btn = Button(login_frame, text='view', width=4, command=toggle_password, 
                     font=("Arial", 10), cursor="hand2")
     toggle_btn.place(x=420, y=245)
     Button(login_frame, text="Login", width=27, bg="#00bcd4", fg="white",
@@ -307,7 +307,7 @@ def login_page():
     Label(register_frame, text="Password", bg="white", font=("Arial", 16)).place(x=50, y=215)
     reg_password = Entry(register_frame, width=30, show="*", bd=2, relief="groove", font=("Arial", 16))
     reg_password.place(x=50, y=245)
-    toggle_btn = Button(register_frame, text='Show', width=4, command=toggle_password, 
+    toggle_btn = Button(register_frame, text='view', width=4, command=toggle_password, 
                     font=("Arial", 10), cursor="hand2")
     toggle_btn.place(x=420, y=245)
     Label(register_frame, text="Confirm Password", bg="white", font=("Arial", 16)).place(x=50, y=275)
@@ -336,7 +336,7 @@ def login_page():
     Label(forgot_frame, text="New Password", bg="white", font=("Arial", 16)).place(x=50, y=220)
     new_password = Entry(forgot_frame, width=30, show="*", bd=2, relief="groove", font=("Arial", 16))
     new_password.place(x=50, y=250)
-    toggle_btn = Button(forgot_frame, text='Show', width=4, command=toggle_password, 
+    toggle_btn = Button(forgot_frame, text='view', width=4, command=toggle_password, 
                     font=("Arial", 10), cursor="hand2")
     toggle_btn.place(x=420, y=250)
     Label(forgot_frame, text="Security Password:", bg="white", font=("Arial", 16)).place(x=50, y=305)
